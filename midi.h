@@ -20,3 +20,10 @@ typedef struct {
 typedef struct {
 	midi_track_hdr_t hdr; 		
 } midi_track_t;
+
+typedef struct {
+	uint32_t t; //time delta...
+	uint8_t cmd;
+	uint8_t chan;
+	uint8_t * data; 
+} midi_event_t;
