@@ -5,12 +5,14 @@
 #include "midi.h"
 
 
+/** 
+ * Because endianness sucks
+ */
 static inline uint16_t btol16(uint16_t n) {
 	return (n>>8) | (n<<8);
 }
-
 static inline uint32_t btol32(uint32_t n) {
-	return  ((n>>24)&0xff) | ((n<<8)&0xff0000) | ((n>>8)&0xff00) |  ((n<<24)&0xff000000);
+	return ((n>>24)&0xff) | ((n<<8)&0xff0000) | ((n>>8)&0xff00) |  ((n<<24)&0xff000000);
 }
 
 static inline void midi_parse_hdr(FILE * file, midi_hdr_t * hdr);
@@ -21,9 +23,7 @@ static inline uint32_t midi_parse_timedelta(FILE * file, unsigned int * const by
 
 static inline char * midi_get_eventstr(uint8_t cmd);
 
-//static inline uint8_t midi_parse_command(FILE * file);
-
-
+static inline void print_track(midi_track_t * const trk);
 
 int main(void) {
 	char midi_file[] = "iloverocknroll.mid";
@@ -48,45 +48,50 @@ int main(void) {
 
 	for ( int i = 0; i < hdr.tracks; ++i ) {
 		midi_parse_track(midi, &tracks[i]);
-		printf("Track %d, %d events, %u bytes, sig: %c%c%c%c\n", i, tracks[i].events, tracks[i].hdr.size, 
-				tracks[i].hdr.magic[0], tracks[i].hdr.magic[1], tracks[i].hdr.magic[2], tracks[i].hdr.magic[3]);
 
-		midi_track_t * trk = &tracks[i];
-		//now each event is... theoretically... stored as a linked list in the track.	
-		trk->cur = trk->head;
-
-		
-		while ( trk->cur != NULL ) {
-			if ( trk->cur->type == MIDI_TYPE_META ) {
-				printf("META (+%u) cmd: 0x%x; size: %u; data:", trk->cur->td, trk->cur->event.meta.cmd, trk->cur->event.meta.size);
-
-				for ( int b = 0; b < trk->cur->event.meta.size; ++b )
-					printf("%c",trk->cur->event.meta.data[b]);
-
-			} else if ( trk->cur->type == MIDI_TYPE_EVENT ) {
-				printf("EVENT (+%u) type: 0x%x; chan: %02x; args: ", trk->cur->td, trk->cur->event.event.cmd, trk->cur->event.event.chan);
-				int args = 2;
-				//@todo this is lol ugly.
-				if ( trk->cur->event.event.cmd == 12 || trk->cur->event.event.cmd == 13 )
-					args = 1;
-
-				for ( int b = 0; b < args; ++b )
-					printf("%d ", trk->cur->event.event.data[b]);
-			}
-			
-			printf("\n");
-		
-			midi_event_node_t * prev = trk->cur;
-			trk->cur = trk->cur->next;
-
-			//at present, only the events are on the heap.
-			free(prev);
-		}
+		print_track(&tracks[i]);
 	}
 
 	
 	fclose(midi);
 }
+
+static inline void print_track(midi_track_t * const trk) {
+
+	printf("Track %d, %d events, %u bytes, sig: %c%c%c%c\n", trk->num, trk->events, trk->hdr.size, 
+		trk->hdr.magic[0], trk->hdr.magic[1], trk->hdr.magic[2], trk->hdr.magic[3]);
+
+	trk->cur = trk->head;
+
+		
+	while ( trk->cur != NULL ) {
+		if ( trk->cur->type == MIDI_TYPE_META ) {
+			printf("META (+%u) cmd: 0x%x; size: %u; data:", trk->cur->td, trk->cur->event.meta.cmd, trk->cur->event.meta.size);
+
+			for ( int b = 0; b < trk->cur->event.meta.size; ++b )
+				printf("%c",trk->cur->event.meta.data[b]);
+
+		} else if ( trk->cur->type == MIDI_TYPE_EVENT ) {
+			printf("EVENT (+%u) type: 0x%x; chan: %02x; args: ", trk->cur->td, trk->cur->event.event.cmd, trk->cur->event.event.chan);
+			int args = 2;
+			//@todo this is lol ugly.
+			if ( trk->cur->event.event.cmd == 12 || trk->cur->event.event.cmd == 13 )
+				args = 1;
+
+			for ( int b = 0; b < args; ++b )
+				printf("%d ", trk->cur->event.event.data[b]);
+		}
+			
+		printf("\n");
+		
+		midi_event_node_t * prev = trk->cur;
+		trk->cur = trk->cur->next;
+
+		//at present, only the events are on the heap.
+		free(prev);
+	}
+}
+
 
 static inline void midi_parse_hdr(FILE * file, midi_hdr_t * hdr) {
 	fread((void*)hdr, MIDI_HEADER_SIZE,1, file);

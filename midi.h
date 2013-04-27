@@ -47,6 +47,7 @@ typedef struct midi_event_node_s {
 typedef struct {
 	midi_track_hdr_t hdr;
 	uint32_t events;
+	uint8_t num;
 	midi_event_node_t * head;
 	midi_event_node_t * cur;
 } midi_track_t;
