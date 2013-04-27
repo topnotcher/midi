@@ -78,6 +78,9 @@ static inline void midi_parse_track(FILE * file, midi_track_t * trk) {
 }
 
 static inline int midi_parse_event(FILE * file) {
+	
+	static uint8_t running_cmd = 0;
+
 	unsigned int bytes = 0;
 
 	uint32_t td;
@@ -106,13 +109,26 @@ static inline int midi_parse_event(FILE * file) {
 	} else {
 		uint8_t cmd = (cmdchan>>4)&0x0F;
 		uint8_t chan = cmdchan&0x0F;
-		printf("command: %u, chan: %u (0x%02x)\n",cmd, chan,cmdchan);
+		int skipbytes = 2;
+
 		if ( !(cmd & 0x08) ) {
-			printf("WUT WUT? (fpos: %lu)\n", ftell(file));
+			cmd = running_cmd;
+			skipbytes--;
+		}
+
+		else 
+			running_cmd = cmd;
+
+		if ( !(cmd & 0x08) ) {
+			printf("Invalid command, but no running command.");
 			exit(1);
 		}
-		int skipbytes = 2;
-	
+
+
+		printf("command: %u, chan: %u (0x%02x)\n",cmd, chan,cmdchan);
+
+
+		
 		if ( cmd == 12 || cmd == 13 )
 			skipbytes = 1;
 
