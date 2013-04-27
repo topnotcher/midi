@@ -224,7 +224,7 @@ static inline uint32_t midi_parse_timedelta(FILE * file, unsigned int  * const b
 	uint32_t td = 0;
 
 	int read = 0;
-	for ( int done = 0; !done && read < sizeof(uint32_t); read += 1 ) {
+	for ( int done = 0; !done && read < sizeof(uint32_t); read++ ) {
 		fread((void*)&tmp,1,1, file);
 
 		if ( !(tmp & 0x80) ) 
