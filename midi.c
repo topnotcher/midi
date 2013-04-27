@@ -46,9 +46,45 @@ int main(void) {
 
 	midi_track_t tracks[hdr.tracks];
 
-	for ( int i = 0; i < hdr.tracks; ++i ) 
+	for ( int i = 0; i < hdr.tracks; ++i ) {
 		midi_parse_track(midi, &tracks[i]);
+		printf("Track %d, %d events, %u bytes, sig: %c%c%c%c\n", i, tracks[i].events, tracks[i].hdr.size, 
+				tracks[i].hdr.magic[0], tracks[i].hdr.magic[1], tracks[i].hdr.magic[2], tracks[i].hdr.magic[3]);
 
+		midi_track_t * trk = &tracks[i];
+		//now each event is... theoretically... stored as a linked list in the track.	
+		trk->cur = trk->head;
+
+		
+		while ( trk->cur != NULL ) {
+			if ( trk->cur->type == MIDI_TYPE_META ) {
+				printf("META cmd: 0x%x; size: %u; data:", trk->cur->event.meta.cmd, trk->cur->event.meta.size);
+
+				for ( int b = 0; b < trk->cur->event.meta.size; ++b )
+					printf("%c",trk->cur->event.meta.data[b]);
+
+			} else if ( trk->cur->type == MIDI_TYPE_EVENT ) {
+				printf("EVENT type: 0x%x; chan: %02x; args: ", trk->cur->event.event.cmd, trk->cur->event.event.chan);
+				int args = 2;
+				//@todo this is lol ugly.
+				if ( trk->cur->event.event.cmd == 12 || trk->cur->event.event.cmd == 13 )
+					args = 1;
+
+				for ( int b = 0; b < args; ++b )
+					printf("%d ", trk->cur->event.event.data[b]);
+			}
+			
+			printf("\n");
+		
+			midi_event_node_t * prev = trk->cur;
+			trk->cur = trk->cur->next;
+
+			//at present, only the events are on the heap.
+			free(prev);
+		}
+	}
+
+	
 	fclose(midi);
 }
 
@@ -64,14 +100,12 @@ static inline void midi_parse_track(FILE * file, midi_track_t * trk) {
 	fread((void*)&trk->hdr, MIDI_TRACK_HEADER_SIZE, 1, file);
 	trk->hdr.size = btol32(trk->hdr.size);
 
-	printf("Track Signature: %c%c%c%c\n", trk->hdr.magic[0], trk->hdr.magic[1], trk->hdr.magic[2], trk->hdr.magic[3]);
-
 	unsigned int  bytes = 0;
 	trk->events = 0;
 
 	//@TODO check return
 	trk->head = midi_parse_event(file, &bytes);
-	trk->current = trk->head;
+	trk->cur = trk->head;
 	trk->events += 1;
 
 	midi_event_node_t * node = trk->head;
@@ -79,6 +113,7 @@ static inline void midi_parse_track(FILE * file, midi_track_t * trk) {
 	while ( bytes < trk->hdr.size ) {
 	//	printf("%u bytes\n", bytes);
 		node->next = midi_parse_event(file, &bytes);
+		node = node->next;
 		trk->events++;
 	}
 
@@ -102,6 +137,7 @@ static inline midi_event_node_t* midi_parse_event(FILE * file, unsigned int * co
 	*bytes += fread((void*)&cmdchan, 1,1, file);
 	
 	//0xFF = meta event.
+	///@TODO split this out into a functionf or meta / event
 	if ( cmdchan == 0xFF )  {
 		uint8_t cmd ;
 		uint8_t size ;
@@ -119,6 +155,7 @@ static inline midi_event_node_t* midi_parse_event(FILE * file, unsigned int * co
 		//printf("Read %u meta bytes\n",size);
 		node->event.meta.size = size;
 		node->event.meta.cmd = cmd;
+		node->type = MIDI_TYPE_META;
 	//	printf("***M[2] %u\n", *bytes);
 
 	} else {
@@ -153,6 +190,8 @@ static inline midi_event_node_t* midi_parse_event(FILE * file, unsigned int * co
 		
 		node->event.event.cmd = cmd;
 		node->event.event.chan = chan;
+		node->type = MIDI_TYPE_EVENT;
+
 	//	printf("***E[2] %u\n", *bytes);
 
 	}
