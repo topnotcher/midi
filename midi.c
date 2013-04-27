@@ -44,10 +44,9 @@ int main(void) {
 	printf("delta thing: %u\n", hdr.dd);
 
 	midi_track_t tracks[hdr.tracks];
-	printf("Header parsed; fpos: %lu\n",ftell(midi));
+
 	for ( int i = 0; i < hdr.tracks; ++i ) 
 		midi_parse_track(midi, &tracks[i]);
-//fseek(midi, tracks[i].hdr.size, SEEK_CUR);
 
 	fclose(midi);
 }
