@@ -74,9 +74,7 @@ static inline void print_track(midi_track_t * const trk) {
 
 		else if ( trk->cur->type == MIDI_TYPE_EVENT ) 
 			print_event(&trk->cur->event.event);
-	
-			
-		
+				
 		midi_event_node_t * prev = trk->cur;
 		trk->cur = trk->cur->next;
 
@@ -96,7 +94,7 @@ static inline void print_meta(const midi_meta_t * const meta) {
 
 }
 static inline void print_event(const midi_event_t * const event) {
-	printf("EVENT (+%u) type: 0x%x; chan: %02x; args: ", event->td, event->cmd, event->chan);
+	printf("%s (+%u) type: 0x%x; chan: %02x; args: ", midi_get_eventstr(event->cmd), event->td, event->cmd, event->chan);
 	int args = 2;
 
 	//@todo this is lol ugly.
@@ -105,6 +103,7 @@ static inline void print_event(const midi_event_t * const event) {
 
 	for ( int b = 0; b < args; ++b )
 		printf("%d ", event->data[b]);
+	printf("\n");
 }
 
 
