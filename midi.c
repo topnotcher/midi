@@ -58,13 +58,13 @@ int main(void) {
 		
 		while ( trk->cur != NULL ) {
 			if ( trk->cur->type == MIDI_TYPE_META ) {
-				printf("META cmd: 0x%x; size: %u; data:", trk->cur->event.meta.cmd, trk->cur->event.meta.size);
+				printf("META (+%u) cmd: 0x%x; size: %u; data:", trk->cur->td, trk->cur->event.meta.cmd, trk->cur->event.meta.size);
 
 				for ( int b = 0; b < trk->cur->event.meta.size; ++b )
 					printf("%c",trk->cur->event.meta.data[b]);
 
 			} else if ( trk->cur->type == MIDI_TYPE_EVENT ) {
-				printf("EVENT type: 0x%x; chan: %02x; args: ", trk->cur->event.event.cmd, trk->cur->event.event.chan);
+				printf("EVENT (+%u) type: 0x%x; chan: %02x; args: ", trk->cur->td, trk->cur->event.event.cmd, trk->cur->event.event.chan);
 				int args = 2;
 				//@todo this is lol ugly.
 				if ( trk->cur->event.event.cmd == 12 || trk->cur->event.event.cmd == 13 )
