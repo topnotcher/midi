@@ -18,6 +18,8 @@ static inline void midi_parse_track(FILE * file, midi_track_t * hdr);
 
 static inline int midi_parse_event(FILE * file);
 static inline int midi_parse_timedelta(FILE * file, uint32_t * td);
+static inline char * midi_get_eventstr(uint8_t cmd);
+
 //static inline uint8_t midi_parse_command(FILE * file);
 
 
@@ -72,13 +74,17 @@ static inline void midi_parse_track(FILE * file, midi_track_t * trk) {
 		bytes += midi_parse_event(file);
 	}
 
-	printf("*** bytes: %u, size: %u\n", bytes, trk->hdr.size);
-	printf("*** file is at %lu\n" , ftell(file));
+//	printf("*** bytes: %u, size: %u\n", bytes, trk->hdr.size);
+//	printf("*** file is at %lu\n" , ftell(file));
 
 }
 
 static inline int midi_parse_event(FILE * file) {
 	
+	/**
+ 	 * per midi format: sometimes events will not contain  a command byte
+ 	 * And in this case, the "running command" from the last command byte is used.
+ 	 */
 	static uint8_t running_cmd = 0;
 
 	unsigned int bytes = 0;
@@ -86,7 +92,7 @@ static inline int midi_parse_event(FILE * file) {
 	uint32_t td;
 	bytes += midi_parse_timedelta(file, &td);
 
-	printf("time delta: %u\n", td);
+//	printf("time delta: %u\n", td);
 
 	uint8_t cmdchan = 0;
 
@@ -101,7 +107,7 @@ static inline int midi_parse_event(FILE * file) {
 		bytes += fread((void*)&tmp, 1,1, file);
 		bytes += fread((void*)&tmp, 1,1, file);
 //		printf("fpos: %lu\n", ftell(file));
-		printf("Skipping %u meta bytes\n", tmp);
+//		printf("Skipping %u meta bytes\n", tmp);
 		bytes += tmp;
 		fseek(file, tmp, SEEK_CUR);
 
@@ -109,11 +115,13 @@ static inline int midi_parse_event(FILE * file) {
 	} else {
 		uint8_t cmd = (cmdchan>>4)&0x0F;
 		uint8_t chan = cmdchan&0x0F;
-		int skipbytes = 2;
+		uint8_t args[2];
+		int argc = 0;
+		int argn = 2;
 
 		if ( !(cmd & 0x08) ) {
 			cmd = running_cmd;
-			skipbytes--;
+			args[argc++] = cmdchan;
 		}
 
 		else 
@@ -124,16 +132,24 @@ static inline int midi_parse_event(FILE * file) {
 			exit(1);
 		}
 
+		if ( cmd == 12 || cmd == 13 )
+			argn--;
 
-		printf("command: %u, chan: %u (0x%02x)\n",cmd, chan,cmdchan);
+		for ( ; argc < argn; ++argc )
+			bytes += fread(&args[argc], 1,1 , file);
 
+
+		if ( cmd == 0x08 || cmd == 0x09 ) {
+			
+			printf("t=%010d: %s(%u,%u) on channel %u\n", td, midi_get_eventstr(cmd), args[0],args[1],chan);
+		}
+
+		else 
+			printf("t=%010d: %s on channel %u\n", td, midi_get_eventstr(cmd), chan);
+
+//		printf("command: %u, chan: %u (0x%02x)\n",cmd, chan,cmdchan);
 
 		
-		if ( cmd == 12 || cmd == 13 )
-			skipbytes = 1;
-
-		bytes += skipbytes;
-		fseek(file, skipbytes, SEEK_CUR);
 	}
 //	exit(0);
 
@@ -148,7 +164,7 @@ static inline int midi_parse_timedelta(FILE * file, uint32_t * td) {
 	int bytes = 0;
 	for ( int done = 0; !done && bytes < sizeof(uint32_t); bytes += 1 ) {
 		fread((void*)&tmp,1,1, file);
-		printf("Rd:%u\n",tmp)	;
+//		printf("Rd:%u\n",tmp)	;
 		if ( !(tmp & 0x80) ) 
 			done = 1;
 		else 
@@ -156,9 +172,31 @@ static inline int midi_parse_timedelta(FILE * file, uint32_t * td) {
 
 		*td |= tmp<<(7*bytes);
 	}
-	printf("read %d bytes of td\n",bytes);
+//	printf("read %d bytes of td\n",bytes);
 	return bytes;
 }
+
+static inline char * midi_get_eventstr(uint8_t cmd) {
+	switch(cmd) {
+		case 0x8:
+			return "NoteOff";
+		case 0x9:
+			return "NoteOn";
+		case 0xa:
+			return "KeyAfterTouch";
+		case 0xb:
+			return "ControlChange";
+		case 0xc:
+			return "ProgramChange";
+		case 0xd:
+			return "ChanAfterTouch";
+		case 0xe:
+			return "PitchWheelChange";
+	}
+	
+	return "???";
+}
+
 
 /*static inline uint8_t midi_parse_command(FILE * file) {
 	
