@@ -18,12 +18,14 @@ typedef struct {
 } midi_track_hdr_t;
 
 typedef struct {
+	uint32_t td;
 	uint8_t cmd;
 	uint8_t size;
 	uint8_t data[];
 } midi_meta_t;
 
 typedef struct {
+	uint32_t td;
 	uint8_t cmd;
 	uint8_t chan;
 	uint8_t data[]; 
@@ -31,7 +33,6 @@ typedef struct {
 
 
 typedef struct midi_event_node_s {
-	uint32_t td;
 	enum {
 		MIDI_TYPE_EVENT,
 		MIDI_TYPE_META

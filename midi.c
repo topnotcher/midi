@@ -23,7 +23,10 @@ static inline uint32_t midi_parse_timedelta(FILE * file, unsigned int * const by
 
 static inline char * midi_get_eventstr(uint8_t cmd);
 
+
 static inline void print_track(midi_track_t * const trk);
+static inline void print_meta(const midi_meta_t * const meta);
+static inline void print_event(const midi_event_t * const event);
 
 int main(void) {
 	char midi_file[] = "iloverocknroll.mid";
@@ -65,24 +68,14 @@ static inline void print_track(midi_track_t * const trk) {
 
 		
 	while ( trk->cur != NULL ) {
-		if ( trk->cur->type == MIDI_TYPE_META ) {
-			printf("META (+%u) cmd: 0x%x; size: %u; data:", trk->cur->td, trk->cur->event.meta.cmd, trk->cur->event.meta.size);
 
-			for ( int b = 0; b < trk->cur->event.meta.size; ++b )
-				printf("%c",trk->cur->event.meta.data[b]);
+		if ( trk->cur->type == MIDI_TYPE_META ) 
+			print_meta(&trk->cur->event.meta);
 
-		} else if ( trk->cur->type == MIDI_TYPE_EVENT ) {
-			printf("EVENT (+%u) type: 0x%x; chan: %02x; args: ", trk->cur->td, trk->cur->event.event.cmd, trk->cur->event.event.chan);
-			int args = 2;
-			//@todo this is lol ugly.
-			if ( trk->cur->event.event.cmd == 12 || trk->cur->event.event.cmd == 13 )
-				args = 1;
-
-			for ( int b = 0; b < args; ++b )
-				printf("%d ", trk->cur->event.event.data[b]);
-		}
+		else if ( trk->cur->type == MIDI_TYPE_EVENT ) 
+			print_event(&trk->cur->event.event);
+	
 			
-		printf("\n");
 		
 		midi_event_node_t * prev = trk->cur;
 		trk->cur = trk->cur->next;
@@ -91,6 +84,29 @@ static inline void print_track(midi_track_t * const trk) {
 		free(prev);
 	}
 }
+
+static inline void print_meta(const midi_meta_t * const meta) {
+	printf("META (+%u) cmd: 0x%x; size: %u; data:", meta->td, meta->cmd, meta->size);
+
+	//NOTE: this may not be ASCII, and even if it is, it is NOT null-terminated.
+	for ( int b = 0; b < meta->size; ++b )
+		printf("%c",meta->data[b]);
+
+	printf("\n");
+
+}
+static inline void print_event(const midi_event_t * const event) {
+	printf("EVENT (+%u) type: 0x%x; chan: %02x; args: ", event->td, event->cmd, event->chan);
+	int args = 2;
+
+	//@todo this is lol ugly.
+	if ( event->cmd == 12 || event->cmd == 13 )
+		args = 1;
+
+	for ( int b = 0; b < args; ++b )
+		printf("%d ", event->data[b]);
+}
+
 
 
 static inline void midi_parse_hdr(FILE * file, midi_hdr_t * hdr) {
@@ -160,6 +176,7 @@ static inline midi_event_node_t* midi_parse_event(FILE * file, unsigned int * co
 		//printf("Read %u meta bytes\n",size);
 		node->event.meta.size = size;
 		node->event.meta.cmd = cmd;
+		node->event.meta.td = td;
 		node->type = MIDI_TYPE_META;
 	//	printf("***M[2] %u\n", *bytes);
 
@@ -194,6 +211,7 @@ static inline midi_event_node_t* midi_parse_event(FILE * file, unsigned int * co
 			node->event.event.data[i] = args[i];
 		
 		node->event.event.cmd = cmd;
+		node->event.event.td = td;
 		node->event.event.chan = chan;
 		node->type = MIDI_TYPE_EVENT;
 
@@ -202,7 +220,6 @@ static inline midi_event_node_t* midi_parse_event(FILE * file, unsigned int * co
 	}
 
 	node->next = NULL;
-	node->td = td;
 
 	return node;
 }
