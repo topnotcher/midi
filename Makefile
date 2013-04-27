@@ -1,2 +1,2 @@
 all:
-	gcc --std=c99 -Wall -Werror midi.c -o midi -O2
+	gcc -O2 --std=c99 -Wall -Werror midi.c -o midi 

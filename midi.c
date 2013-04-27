@@ -124,7 +124,6 @@ static inline void midi_parse_track(FILE * file, midi_track_t * trk) {
 	unsigned int  bytes = 0;
 	trk->events = 0;
 
-	//@TODO check return
 	trk->head = midi_parse_event(file, &bytes);
 	trk->cur = trk->head;
 	trk->events += 1;
@@ -132,7 +131,6 @@ static inline void midi_parse_track(FILE * file, midi_track_t * trk) {
 	midi_event_node_t * node = trk->head;
 
 	while ( bytes < trk->hdr.size ) {
-	//	printf("%u bytes\n", bytes);
 		node->next = midi_parse_event(file, &bytes);
 		node = node->next;
 		trk->events++;
@@ -142,7 +140,6 @@ static inline void midi_parse_track(FILE * file, midi_track_t * trk) {
 }
 
 static inline midi_event_node_t* midi_parse_event(FILE * file, unsigned int * const bytes) {
-	//printf("****[1] %u\n", *bytes);
 	/**
  	 * per midi format: sometimes events will not contain  a command byte
  	 * And in this case, the "running command" from the last command byte is used.
@@ -173,12 +170,10 @@ static inline midi_event_node_t* midi_parse_event(FILE * file, unsigned int * co
 		fread(node->event.meta.data, size, 1, file);
 		*bytes += size;
 
-		//printf("Read %u meta bytes\n",size);
 		node->event.meta.size = size;
 		node->event.meta.cmd = cmd;
 		node->event.meta.td = td;
 		node->type = MIDI_TYPE_META;
-	//	printf("***M[2] %u\n", *bytes);
 
 	} else {
 		uint8_t cmd = (cmdchan>>4)&0x0F;
@@ -215,7 +210,6 @@ static inline midi_event_node_t* midi_parse_event(FILE * file, unsigned int * co
 		node->event.event.chan = chan;
 		node->type = MIDI_TYPE_EVENT;
 
-	//	printf("***E[2] %u\n", *bytes);
 
 	}
 
@@ -265,9 +259,4 @@ static inline char * midi_get_eventstr(uint8_t cmd) {
 	
 	return "???";
 }
-
-
-/*static inline uint8_t midi_parse_command(FILE * file) {
-	
-}*/
 
