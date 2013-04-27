@@ -14,10 +14,11 @@ static inline uint32_t btol32(uint32_t n) {
 }
 
 static inline void midi_parse_hdr(FILE * file, midi_hdr_t * hdr);
-static inline void midi_parse_track(FILE * file, midi_track_t * hdr);
+static inline void midi_parse_track(FILE * file, midi_track_t * );
 
-static inline int midi_parse_event(FILE * file);
-static inline int midi_parse_timedelta(FILE * file, uint32_t * td);
+static inline midi_event_node_t * midi_parse_event(FILE * file, unsigned int * const bytes);
+static inline uint32_t midi_parse_timedelta(FILE * file, unsigned int * const bytes);
+
 static inline char * midi_get_eventstr(uint8_t cmd);
 
 //static inline uint8_t midi_parse_command(FILE * file);
@@ -63,53 +64,62 @@ static inline void midi_parse_track(FILE * file, midi_track_t * trk) {
 	fread((void*)&trk->hdr, MIDI_TRACK_HEADER_SIZE, 1, file);
 	trk->hdr.size = btol32(trk->hdr.size);
 
-	printf("--- Process track ---\n");
-	printf("Track signature: %c%c%c%c\n", trk->hdr.magic[0], trk->hdr.magic[1], trk->hdr.magic[2], trk->hdr.magic[3]);
+	printf("Track Signature: %c%c%c%c\n", trk->hdr.magic[0], trk->hdr.magic[1], trk->hdr.magic[2], trk->hdr.magic[3]);
 
+	unsigned int  bytes = 0;
+	trk->events = 0;
 
-	unsigned int bytes = 0;
+	//@TODO check return
+	trk->head = midi_parse_event(file, &bytes);
+	trk->current = trk->head;
+	trk->events += 1;
+
+	midi_event_node_t * node = trk->head;
 
 	while ( bytes < trk->hdr.size ) {
-		bytes += midi_parse_event(file);
+	//	printf("%u bytes\n", bytes);
+		node->next = midi_parse_event(file, &bytes);
+		trk->events++;
 	}
 
-//	printf("*** bytes: %u, size: %u\n", bytes, trk->hdr.size);
-//	printf("*** file is at %lu\n" , ftell(file));
-
+	node->next = NULL;
 }
 
-static inline int midi_parse_event(FILE * file) {
-	
+static inline midi_event_node_t* midi_parse_event(FILE * file, unsigned int * const bytes) {
+	//printf("****[1] %u\n", *bytes);
 	/**
  	 * per midi format: sometimes events will not contain  a command byte
  	 * And in this case, the "running command" from the last command byte is used.
  	 */
 	static uint8_t running_cmd = 0;
 
-	unsigned int bytes = 0;
+	uint32_t td = midi_parse_timedelta(file, bytes);
 
-	uint32_t td;
-	bytes += midi_parse_timedelta(file, &td);
-
-//	printf("time delta: %u\n", td);
+	midi_event_node_t * node;
 
 	uint8_t cmdchan = 0;
 
-	bytes+=fread((void*)&cmdchan, 1,1, file);
-
-	//meta event
+	*bytes += fread((void*)&cmdchan, 1,1, file);
 	
+	//0xFF = meta event.
 	if ( cmdchan == 0xFF )  {
-		uint8_t tmp ;
+		uint8_t cmd ;
+		uint8_t size ;
+	
 		//xx, nn, dd = command, length, data...
 		//skip the command.
-		bytes += fread((void*)&tmp, 1,1, file);
-		bytes += fread((void*)&tmp, 1,1, file);
-//		printf("fpos: %lu\n", ftell(file));
-//		printf("Skipping %u meta bytes\n", tmp);
-		bytes += tmp;
-		fseek(file, tmp, SEEK_CUR);
+		*bytes += fread((void*)&cmd, 1,1, file);
+		*bytes += fread((void*)&size, 1,1, file);
 
+		node = malloc((sizeof *node) + size);
+				
+		fread(node->event.meta.data, size, 1, file);
+		*bytes += size;
+
+		//printf("Read %u meta bytes\n",size);
+		node->event.meta.size = size;
+		node->event.meta.cmd = cmd;
+	//	printf("***M[2] %u\n", *bytes);
 
 	} else {
 		uint8_t cmd = (cmdchan>>4)&0x0F;
@@ -121,58 +131,57 @@ static inline int midi_parse_event(FILE * file) {
 		if ( !(cmd & 0x08) ) {
 			cmd = running_cmd;
 			args[argc++] = cmdchan;
+		} else {
+			running_cmd = cmd;
 		}
 
-		else 
-			running_cmd = cmd;
-
 		if ( !(cmd & 0x08) ) {
-			printf("Invalid command, but no running command.");
+			printf("Invalid command (%u), but no running command. (fpos: %lu)",cmd,ftell(file));
 			exit(1);
 		}
 
 		if ( cmd == 12 || cmd == 13 )
 			argn--;
 
+		node = malloc((sizeof *node) + argn);
+
 		for ( ; argc < argn; ++argc )
-			bytes += fread(&args[argc], 1,1 , file);
+			*bytes += fread(&args[argc], 1,1 , file);
 
-
-		if ( cmd == 0x08 || cmd == 0x09 ) {
-			
-			printf("t=%010d: %s(%u,%u) on channel %u\n", td, midi_get_eventstr(cmd), args[0],args[1],chan);
-		}
-
-		else 
-			printf("t=%010d: %s on channel %u\n", td, midi_get_eventstr(cmd), chan);
-
-//		printf("command: %u, chan: %u (0x%02x)\n",cmd, chan,cmdchan);
-
+		for ( int i = 0; i < argn; ++i )
+			node->event.event.data[i] = args[i];
 		
-	}
-//	exit(0);
+		node->event.event.cmd = cmd;
+		node->event.event.chan = chan;
+	//	printf("***E[2] %u\n", *bytes);
 
-	return bytes;
+	}
+
+	node->next = NULL;
+	node->td = td;
+
+	return node;
 }
 
-static inline int midi_parse_timedelta(FILE * file, uint32_t * td) {
+static inline uint32_t midi_parse_timedelta(FILE * file, unsigned int  * const bytes) {
 
 	uint8_t tmp = 0;
-	*td = 0;
+	uint32_t td = 0;
 
-	int bytes = 0;
-	for ( int done = 0; !done && bytes < sizeof(uint32_t); bytes += 1 ) {
+	int read = 0;
+	for ( int done = 0; !done && read < sizeof(uint32_t); read += 1 ) {
 		fread((void*)&tmp,1,1, file);
-//		printf("Rd:%u\n",tmp)	;
+
 		if ( !(tmp & 0x80) ) 
 			done = 1;
 		else 
 			tmp &= 0x7F;
 
-		*td |= tmp<<(7*bytes);
+		td |= tmp<<(7*read);
 	}
-//	printf("read %d bytes of td\n",bytes);
-	return bytes;
+	*bytes += read;
+
+	return td;
 }
 
 static inline char * midi_get_eventstr(uint8_t cmd) {

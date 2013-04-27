@@ -17,9 +17,6 @@ typedef struct {
 	uint32_t size;
 } midi_track_hdr_t;
 
-#define MIDI_TYPE_EVENT
-#define MIDI_TYPE_META
-
 typedef struct {
 	uint8_t cmd;
 	uint8_t size;
@@ -35,11 +32,15 @@ typedef struct {
 
 typedef struct midi_event_node_s {
 	uint32_t td;
+	enum {
+		MIDI_TYPE_EVENT,
+		MIDI_TYPE_META
+	} type;
+	struct midi_event_node_s * next;
 	union {
 		midi_event_t event;
 		midi_meta_t meta;
-	};
-	struct midi_event_node_s * next;
+	} event;
 } midi_event_node_t;
 
 
