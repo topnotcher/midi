@@ -50,6 +50,7 @@ int main(void) {
 	midi_track_t tracks[hdr.tracks];
 
 	for ( int i = 0; i < hdr.tracks; ++i ) {
+		tracks[i].num = i;
 		midi_parse_track(midi, &tracks[i]);
 
 		print_track(&tracks[i]);
