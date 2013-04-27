@@ -220,20 +220,22 @@ static inline midi_event_node_t* midi_parse_event(FILE * file, unsigned int * co
 
 static inline uint32_t midi_parse_timedelta(FILE * file, unsigned int  * const bytes) {
 
-	uint8_t tmp = 0;
+	uint8_t tmp[4] = {0};
 	uint32_t td = 0;
 
 	int read = 0;
-	for ( int done = 0; !done && read < sizeof(uint32_t); read++ ) {
-		fread((void*)&tmp,1,1, file);
+	int more;
+	do {
+		fread((void*)&tmp[read],1,1, file);
+		more = tmp[read]&0x80;
+		tmp[read] &= 0x7F;
+		read++;
+	} while (more);
 
-		if ( !(tmp & 0x80) ) 
-			done = 1;
-		else 
-			tmp &= 0x7F;
+	//need read all the bytes first due to endianness
+	for ( int i = 0; i < read; ++i ) 
+		td |= tmp[i]<<((read-1-i)*7);
 
-		td |= tmp<<(7*read);
-	}
 	*bytes += read;
 
 	return td;
