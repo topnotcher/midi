@@ -17,6 +17,9 @@ static inline uint32_t btol32(uint32_t n) {
 
 static inline void midi_parse_hdr(FILE * file, midi_hdr_t * hdr);
 static inline void midi_parse_track(FILE * file, midi_track_t * );
+//static void midi_parse_track_hdr(FILE * file, midi_track_t * );
+
+
 
 static inline midi_event_node_t * midi_parse_event(FILE * file, unsigned int * const bytes);
 static inline uint32_t midi_parse_timedelta(FILE * file, unsigned int * const bytes);
@@ -27,6 +30,8 @@ static inline char * midi_get_eventstr(uint8_t cmd);
 static inline void print_track(midi_track_t * const trk);
 static inline void print_meta(const midi_meta_t * const meta);
 static inline void print_event(const midi_event_t * const event);
+
+
 
 static inline void do_midi_thing(char * midi_file);
 
@@ -48,34 +53,52 @@ int main(int argc, char**argv) {
 
 }
 
-void do_midi_thing(char * midi_file) {
-	FILE * midi = fopen(midi_file, "r");
+midi_t * midi_open(char * midi_file) {
+	FILE * file = fopen(midi_file, "r");
 
-	midi_hdr_t hdr;		
-	midi_parse_hdr(midi, &hdr);
+	if ( file == NULL ) {
+		fprintf(stderr, "fopen(%s): epic fail\n", midi_file);
+		exit(1);
+	}
+
+	midi_t * midi = malloc(sizeof *midi);
+	midi->midi_file = file;
+
+	midi_parse_hdr(file, &midi->hdr);
 
 	//just in case there are additional bytes in the header?
 	//@TODO struct alignment sucks balls.
-	fseek(midi, hdr.hsize - (MIDI_HEADER_SIZE-4-4), SEEK_CUR);
+	fseek(file, midi->hdr.hsize - (MIDI_HEADER_SIZE-4-4), SEEK_CUR);
 
 
-	printf("Midi Signature: %c%c%c%c\n", hdr.magic[0], hdr.magic[1], hdr.magic[2], hdr.magic[3]);
-	printf("Midi header size: %u\n", hdr.hsize);
-	printf("Midi format: %u\n", hdr.format);
-	printf("# of tracks: %u\n", hdr.tracks);
-	printf("delta thing: %u\n", hdr.dd);
+	return midi;
+}
 
-	midi_track_t tracks[hdr.tracks];
+void midi_close(midi_t * midi) {
+	fclose(midi->midi_file);
+	free(midi);
+}
 
-	for ( int i = 0; i < hdr.tracks; ++i ) {
+void do_midi_thing(char * midi_file) {
+	
+	midi_t * midi = midi_open(midi_file);	
+
+	printf("Midi Signature: %c%c%c%c\n", midi->hdr.magic[0], midi->hdr.magic[1], midi->hdr.magic[2], midi->hdr.magic[3]);
+	printf("Midi header size: %u\n", midi->hdr.hsize);
+	printf("Midi format: %u\n", midi->hdr.format);
+	printf("# of tracks: %u\n", midi->hdr.tracks);
+	printf("delta thing: %u\n", midi->hdr.dd);
+
+	midi_track_t tracks[midi->hdr.tracks];
+
+	for ( int i = 0; i < midi->hdr.tracks; ++i ) {
 		tracks[i].num = i;
-		midi_parse_track(midi, &tracks[i]);
+		midi_parse_track(midi->midi_file, &tracks[i]);
 
 		print_track(&tracks[i]);
 	}
 
-	
-	fclose(midi);
+	midi_close(midi);	
 }
 
 static inline void print_track(midi_track_t * const trk) {

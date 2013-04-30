@@ -1,5 +1,5 @@
 #include <stdint.h>
-
+#include <stdio.h>
 
 
 #define MIDI_HEADER_SIZE 14
@@ -14,7 +14,7 @@ typedef struct {
 #define MIDI_TRACK_HEADER_SIZE 8
 typedef struct {
 	char magic[4];
-	uint32_t size;
+	uint32_t size;	//
 } midi_track_hdr_t;
 
 typedef struct {
@@ -52,6 +52,17 @@ typedef struct {
 	midi_event_node_t * head;
 	midi_event_node_t * cur;
 } midi_track_t;
+
+typedef struct {
+	FILE * midi_file;
+	//byte offset to start of first track. 
+	midi_hdr_t hdr;
+} midi_t;
+
+
+midi_t * midi_open(char * midi_file);
+
+void midi_close(midi_t * midi);
 
 
 #define MIDI_EVENT_NOTE_OFF 		0x08
