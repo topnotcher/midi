@@ -139,14 +139,22 @@ static inline void print_track(midi_track_t * const trk) {
 	trk->cur = trk->head;
 
 		
+	unsigned long int absolute = 0;
 	while ( trk->cur != NULL ) {
+	
+		if ( trk->cur->type == MIDI_TYPE_EVENT) {
+			absolute += trk->cur->event.event.td;
+			midi_event_t * event = &trk->cur->event.event;
+			
+			if ( event->cmd == MIDI_EVENT_NOTE_ON || event->cmd == MIDI_EVENT_NOTE_OFF )
+				printf("%lu,%u,%u\n", absolute, event->data[0],event->data[1]);
 
-		if ( trk->cur->type == MIDI_TYPE_META ) 
-			print_meta(&trk->cur->event.meta);
-
-		else if ( trk->cur->type == MIDI_TYPE_EVENT ) 
-			print_event(&trk->cur->event.event);
-				
+		}
+		else if (trk->cur->type == MIDI_TYPE_META) {
+			absolute += trk->cur->event.event.td;
+		}
+		
+		
 		trk->cur = trk->cur->next;
 	}
 }
@@ -170,7 +178,7 @@ static inline void print_event(const midi_event_t * const event) {
 		args = 1;
 
 	for ( int b = 0; b < args; ++b )
-		printf("%d ", event->data[b]);
+		printf("%d,", event->data[b]);
 	printf("\n");
 }
 
