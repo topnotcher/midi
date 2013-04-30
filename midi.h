@@ -65,7 +65,9 @@ typedef struct {
 
 midi_t * midi_open(char * midi_file);
 void midi_close(midi_t * midi);
-midi_track_t * midi_get_track(uint8_t n);
+midi_track_t * midi_get_track(midi_t * midi, uint8_t n);
+void midi_free_track(midi_track_t * trk);
+
 
 
 #define MIDI_EVENT_NOTE_OFF 		0x08

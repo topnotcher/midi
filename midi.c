@@ -17,7 +17,7 @@ static inline uint32_t btol32(uint32_t n) {
 
 static inline void midi_parse_hdr(FILE * file, midi_hdr_t * hdr);
 static inline void midi_parse_track(FILE * file, midi_track_t * );
-//static void midi_parse_track_hdr(FILE * file, midi_track_t * );
+static void midi_parse_track_hdr(FILE * file, midi_track_hdr_t *);
 
 
 
@@ -79,6 +79,29 @@ midi_t * midi_open(char * midi_file) {
 void midi_close(midi_t * midi) {
 	fclose(midi->midi_file);
 	free(midi);
+}
+
+midi_track_t * midi_get_track(midi_t * midi, uint8_t n) {
+
+	//seek to the beginning of the first track. 
+	fseek(midi->midi_file, midi->trk_offset, SEEK_SET);
+
+	//midi_track_hdr_t trackhdr;
+
+	return (midi_track_t*)NULL;	
+
+}
+
+void midi_free_track(midi_track_t * trk) {
+	trk->cur = trk->head;
+
+	while ( trk->cur != NULL ) {
+		midi_event_node_t * prev = trk->cur;
+		trk->cur = trk->cur->next;
+		free(prev);
+	}
+
+	free(trk);
 }
 
 void do_midi_thing(char * midi_file) {
@@ -160,9 +183,13 @@ static inline void midi_parse_hdr(FILE * file, midi_hdr_t * hdr) {
 	hdr->dd = btol16(hdr->dd);
 }
 
+static void midi_parse_track_hdr(FILE * file, midi_track_hdr_t * hdr) {
+	fread((void*)hdr, MIDI_TRACK_HEADER_SIZE, 1, file);
+	hdr->size = btol32(hdr->size);
+}
+
 static inline void midi_parse_track(FILE * file, midi_track_t * trk) {
-	fread((void*)&trk->hdr, MIDI_TRACK_HEADER_SIZE, 1, file);
-	trk->hdr.size = btol32(trk->hdr.size);
+	midi_parse_track_hdr(file,&trk->hdr);
 
 	unsigned int  bytes = 0;
 	trk->events = 0;
