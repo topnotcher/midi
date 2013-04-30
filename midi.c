@@ -86,10 +86,20 @@ midi_track_t * midi_get_track(midi_t * midi, uint8_t n) {
 	//seek to the beginning of the first track. 
 	fseek(midi->midi_file, midi->trk_offset, SEEK_SET);
 
-	//midi_track_hdr_t trackhdr;
+	midi_track_hdr_t trkhdr;
+	
+	for ( int i = 0; i < n; ++i ) {
+		midi_parse_track_hdr(midi->midi_file, &trkhdr);
 
-	return (midi_track_t*)NULL;	
+		//seek past the track.
+		fseek(midi->midi_file, trkhdr.size, SEEK_CUR);
+	}
 
+	midi_track_t * track = malloc(sizeof *track);
+
+	midi_parse_track(midi->midi_file, track);
+
+	return track;	
 }
 
 void midi_free_track(midi_track_t * trk) {
