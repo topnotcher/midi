@@ -96,7 +96,7 @@ midi_track_t * midi_get_track(midi_t * midi, uint8_t n) {
 	}
 
 	midi_track_t * track = malloc(sizeof *track);
-
+	track->num = n;
 	midi_parse_track(midi->midi_file, track);
 
 	return track;	
@@ -124,18 +124,10 @@ void do_midi_thing(char * midi_file) {
 	printf("# of tracks: %u\n", midi->hdr.tracks);
 	printf("delta thing: %u\n", midi->hdr.dd);
 
-	midi_track_t * tracks[midi->hdr.tracks];
-
-	for ( int i = 0; i < midi->hdr.tracks; ++i ) {
-		tracks[i] = malloc(sizeof *tracks[i]);
-		tracks[i]->num = i;
-		midi_parse_track(midi->midi_file, tracks[i]);
-
-		print_track(tracks[i]);
-
-		midi_free_track(tracks[i]);
-	}
-
+	//get the fourth track
+	midi_track_t * track = midi_get_track(midi, 3);
+	print_track(track);
+	midi_free_track(track);
 	midi_close(midi);	
 }
 
