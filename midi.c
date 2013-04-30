@@ -114,13 +114,16 @@ void do_midi_thing(char * midi_file) {
 	printf("# of tracks: %u\n", midi->hdr.tracks);
 	printf("delta thing: %u\n", midi->hdr.dd);
 
-	midi_track_t tracks[midi->hdr.tracks];
+	midi_track_t * tracks[midi->hdr.tracks];
 
 	for ( int i = 0; i < midi->hdr.tracks; ++i ) {
-		tracks[i].num = i;
-		midi_parse_track(midi->midi_file, &tracks[i]);
+		tracks[i] = malloc(sizeof *tracks[i]);
+		tracks[i]->num = i;
+		midi_parse_track(midi->midi_file, tracks[i]);
 
-		print_track(&tracks[i]);
+		print_track(tracks[i]);
+
+		midi_free_track(tracks[i]);
 	}
 
 	midi_close(midi);	
@@ -142,11 +145,7 @@ static inline void print_track(midi_track_t * const trk) {
 		else if ( trk->cur->type == MIDI_TYPE_EVENT ) 
 			print_event(&trk->cur->event.event);
 				
-		midi_event_node_t * prev = trk->cur;
 		trk->cur = trk->cur->next;
-
-		//at present, only the events are on the heap.
-		free(prev);
 	}
 }
 
