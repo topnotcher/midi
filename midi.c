@@ -28,9 +28,27 @@ static inline void print_track(midi_track_t * const trk);
 static inline void print_meta(const midi_meta_t * const meta);
 static inline void print_event(const midi_event_t * const event);
 
-int main(void) {
-	char midi_file[] = "iloverocknroll.mid";
+static inline void do_midi_thing(char * midi_file);
 
+
+int main(int argc, char**argv) {
+
+	char * midi_file;
+	if ( argc != 2 || strlen(argv[1]) < 1) {
+		char * invocation = (argc > 0) ? argv[0] : "./midi";
+		fprintf(stderr, "Usage: %s filename.mid\n\n", invocation);
+		exit(1);
+	} else {
+		midi_file = argv[1];
+	}
+
+	do_midi_thing(midi_file);
+
+	return 0;
+
+}
+
+void do_midi_thing(char * midi_file) {
 	FILE * midi = fopen(midi_file, "r");
 
 	midi_hdr_t hdr;		
