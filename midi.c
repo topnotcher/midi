@@ -70,6 +70,8 @@ midi_t * midi_open(char * midi_file) {
 	//@TODO struct alignment sucks balls.
 	fseek(file, midi->hdr.hsize - (MIDI_HEADER_SIZE-4-4), SEEK_CUR);
 
+	midi->trk_offset = ftell(file); 
+
 
 	return midi;
 }
