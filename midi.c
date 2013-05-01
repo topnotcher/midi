@@ -76,13 +76,9 @@ midi_track_t * midi_get_track(midi_t * midi, uint8_t n) {
 }
 
 void midi_free_track(midi_track_t * trk) {
-	trk->cur = trk->head;
-
-	while ( trk->cur != NULL ) {
-		midi_event_node_t * prev = trk->cur;
-		trk->cur = trk->cur->next;
-		free(prev);
-	}
+	midi_iter_track(trk);
+	while ( midi_track_has_next(trk) ) 
+		free(midi_track_next(trk));
 
 	free(trk);
 }
