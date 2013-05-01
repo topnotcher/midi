@@ -72,6 +72,8 @@ void midi_free_track(midi_track_t * trk);
 void midi_iter_track(midi_track_t * trk);
 bool midi_track_has_next(midi_track_t *trk);
 midi_event_t * midi_track_next(midi_track_t *trk);
+//print a textual meta argument
+void midi_printmeta(midi_event_t * meta);
 
 
 #define MIDI_EVENT_NOTE_OFF 		0x08

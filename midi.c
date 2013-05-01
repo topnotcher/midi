@@ -20,7 +20,6 @@ static inline void midi_parse_track(FILE * file, midi_track_t * );
 static void midi_parse_track_hdr(FILE * file, midi_track_hdr_t *);
 
 
-
 static inline midi_event_node_t * midi_parse_event(FILE * file, unsigned int * const bytes);
 static inline uint32_t midi_parse_timedelta(FILE * file, unsigned int * const bytes);
 
@@ -223,6 +222,14 @@ static inline uint32_t midi_parse_timedelta(FILE * file, unsigned int  * const b
 	*bytes += read;
 
 	return td;
+}
+
+void midi_printmeta(midi_event_t * meta) {
+	char str[meta->size+1];
+	str[meta->size] = '\0';
+	strncpy(str, (const char *)meta->data, meta->size);
+	
+	printf("%s", str);
 }
 
 static inline char * midi_get_eventstr(uint8_t cmd) {

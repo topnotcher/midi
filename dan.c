@@ -7,6 +7,7 @@
 
 static inline void do_midi_thing(char * midi_file);
 static inline void print_track(midi_track_t * const);
+static inline void scan_tracks(midi_t * midi);
 
 int main(int argc, char**argv) {
 
@@ -32,12 +33,16 @@ static inline void do_midi_thing(char * midi_file) {
 	printf("Midi header size: %u\n", midi->hdr.hsize);
 	printf("Midi format: %u\n", midi->hdr.format);
 	printf("# of tracks: %u\n", midi->hdr.tracks);
-	printf("delta thing: %u\n", midi->hdr.dd);
+	printf("Ticks per beat: %u\n", midi->hdr.dd);
+
+	
+	scan_tracks(midi);
+
 
 	//get the fourth track
-	midi_track_t * track = midi_get_track(midi, 3);
-	print_track(track);
-	midi_free_track(track);
+//	midi_track_t * track = midi_get_track(midi, 3);
+//	print_track(track);
+//	midi_free_track(track);
 	midi_close(midi);	
 }
 
@@ -68,3 +73,36 @@ static inline void print_track(midi_track_t * const trk) {
 		}	
 	}
 }
+
+//this is a pretty inefficient way of doing this, but I don't really feel like making
+//the midi code "public" and using it mroe... besides this is easier anyway!
+static inline void scan_tracks(midi_t * midi) {
+	midi_track_t * track;
+
+	for ( int i = 0; i < midi->hdr.tracks; ++i ) {
+		track =  midi_get_track(midi, i);
+
+
+		printf("Track %d, %d events, %u bytes, sig: %c%c%c%c\n", track->num, track->events, track->hdr.size, 
+			track->hdr.magic[0], track->hdr.magic[1], track->hdr.magic[2], track->hdr.magic[3]);
+
+		midi_iter_track(track);
+		midi_event_t * evnt;
+		while ( midi_track_has_next(track) ) {
+			evnt = midi_track_next(track);
+
+			if ( evnt->td != 0 )
+				break;
+			//0x03 = track name :D
+			if ( evnt->type != MIDI_TYPE_META || evnt->cmd != 0x03 ) 
+				continue;
+
+			printf("Track Name: ");
+			midi_printmeta(evnt);
+			printf("\n");
+		}
+		printf("\n");
+		midi_free_track(track);
+	}
+}
+
