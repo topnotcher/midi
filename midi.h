@@ -1,6 +1,6 @@
 #include <stdint.h>
 #include <stdio.h>
-
+#include <stdbool.h>
 
 #define MIDI_HEADER_SIZE 14
 typedef struct {
@@ -68,6 +68,14 @@ void midi_close(midi_t * midi);
 midi_track_t * midi_get_track(midi_t * midi, uint8_t n);
 void midi_free_track(midi_track_t * trk);
 
+/**
+ * Track iteration
+ */
+
+void midi_iter_track(midi_track_t * trk);
+bool midi_track_has_next(midi_track_t *trk);
+//yeah brillaint - just expose the node!
+midi_event_node_t * midi_track_next(midi_track_t *trk);
 
 
 #define MIDI_EVENT_NOTE_OFF 		0x08

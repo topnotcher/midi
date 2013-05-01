@@ -51,21 +51,20 @@ static inline void print_track(midi_track_t * const trk) {
 
 		
 	unsigned long int absolute = 0;
-	while ( trk->cur != NULL ) {
-	
-		if ( trk->cur->type == MIDI_TYPE_EVENT) {
-			absolute += trk->cur->event.event.td;
-			midi_event_t * event = &trk->cur->event.event;
+	midi_iter_track(trk);
+	midi_event_node_t * cur; 
+	while ( midi_track_has_next(trk) ) {
+		cur = midi_track_next(trk);
+		if ( cur->type == MIDI_TYPE_EVENT) {
+			absolute += cur->event.event.td;
+			midi_event_t * event = &cur->event.event;
 			
 			if ( event->cmd == MIDI_EVENT_NOTE_ON || event->cmd == MIDI_EVENT_NOTE_OFF )
 				printf("%lu,%u,%u\n", absolute, event->data[0],event->data[1]);
 
 		}
-		else if (trk->cur->type == MIDI_TYPE_META) {
-			absolute += trk->cur->event.event.td;
-		}
-		
-		
-		trk->cur = trk->cur->next;
+		else if (cur->type == MIDI_TYPE_META) {
+			absolute += cur->event.event.td;
+		}	
 	}
 }
