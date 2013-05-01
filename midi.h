@@ -19,29 +19,26 @@ typedef struct {
 
 typedef struct {
 	uint32_t td;
-	uint8_t cmd;
-	uint8_t size;
-	uint8_t data[];
-} midi_meta_t;
 
-typedef struct {
-	uint32_t td;
+	enum {
+		MIDI_TYPE_EVENT,
+		MIDI_TYPE_META
+	} type;
+
 	uint8_t cmd;
+
+	//always 0 for meta events.
 	uint8_t chan;
+
+	uint8_t size; 
+
 	uint8_t data[]; 
 } midi_event_t;
 
 
 typedef struct midi_event_node_s {
-	enum {
-		MIDI_TYPE_EVENT,
-		MIDI_TYPE_META
-	} type;
 	struct midi_event_node_s * next;
-	union {
-		midi_event_t event;
-		midi_meta_t meta;
-	} event;
+	midi_event_t event;
 } midi_event_node_t;
 
 
@@ -74,8 +71,7 @@ void midi_free_track(midi_track_t * trk);
 
 void midi_iter_track(midi_track_t * trk);
 bool midi_track_has_next(midi_track_t *trk);
-//yeah brillaint - just expose the node!
-midi_event_node_t * midi_track_next(midi_track_t *trk);
+midi_event_t * midi_track_next(midi_track_t *trk);
 
 
 #define MIDI_EVENT_NOTE_OFF 		0x08
