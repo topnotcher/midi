@@ -246,3 +246,16 @@ static inline char * midi_get_eventstr(uint8_t cmd) {
 	return "???";
 }
 
+
+void midi_iter_track(midi_track_t * trk) {
+	trk->cur = trk->head;
+}
+bool midi_track_has_next(midi_track_t *trk) {
+	return trk->cur != NULL;
+}
+
+midi_event_t * midi_track_next(midi_track_t *trk) {
+	midi_event_node_t * cur = trk->cur;
+	trk->cur = trk->cur->next;
+	return &cur->event;
+}
