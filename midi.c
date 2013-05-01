@@ -149,13 +149,14 @@ static inline midi_event_node_t* midi_parse_event(FILE * file, unsigned int * co
 
 		node = malloc((sizeof *node) + size);
 				
-		fread(node->event.meta.data, size, 1, file);
+		fread(node->event.data, size, 1, file);
 		*bytes += size;
 
-		node->event.meta.size = size;
-		node->event.meta.cmd = cmd;
-		node->event.meta.td = td;
-		node->type = MIDI_TYPE_META;
+		node->event.size = size;
+		node->event.cmd = cmd;
+		node->event.td = td;
+		node->event.chan = 0;
+		node->event.type = MIDI_TYPE_META;
 
 	} else {
 		uint8_t cmd = (cmdchan>>4)&0x0F;
@@ -185,12 +186,13 @@ static inline midi_event_node_t* midi_parse_event(FILE * file, unsigned int * co
 			*bytes += fread(&args[argc], 1,1 , file);
 
 		for ( int i = 0; i < argn; ++i )
-			node->event.event.data[i] = args[i];
+			node->event.data[i] = args[i];
 		
-		node->event.event.cmd = cmd;
-		node->event.event.td = td;
-		node->event.event.chan = chan;
-		node->type = MIDI_TYPE_EVENT;
+		node->event.cmd = cmd;
+		node->event.td = td;
+		node->event.size = (uint8_t)argc;
+		node->event.chan = chan;
+		node->event.type = MIDI_TYPE_EVENT;
 
 
 	}
