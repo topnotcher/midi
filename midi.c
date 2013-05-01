@@ -49,6 +49,7 @@ midi_t * midi_open(char * midi_file) {
 }
 
 void midi_close(midi_t * midi) {
+	if ( midi == NULL ) return;
 	fclose(midi->midi_file);
 	free(midi);
 }
@@ -75,7 +76,7 @@ midi_track_t * midi_get_track(midi_t * midi, uint8_t n) {
 }
 
 void midi_free_track(midi_track_t * trk) {
-
+	if ( trk == NULL ) return;
 	trk->cur = trk->head;
 	while ( trk->cur != NULL ) {
 		midi_event_node_t  * cur = trk->cur;	
