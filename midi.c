@@ -30,7 +30,7 @@ midi_t * midi_open(char * midi_file) {
 
 	if ( file == NULL ) {
 		fprintf(stderr, "fopen(%s): epic fail\n", midi_file);
-		exit(1);
+		return NULL;
 	}
 
 	midi_t * midi = malloc(sizeof *midi);
