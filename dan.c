@@ -46,17 +46,15 @@ static inline void do_midi_thing(char * midi_file) {
 
 	find_tracks(midi,&guitar,&beat);
 		
-	printf("value of guitar pointer: %lu\n", (long unsigned int)guitar);
-
 	if ( guitar != NULL ) {
-		printf("Found PART GUITAR, track: %u\n", guitar->num);
+		//printf("Found PART GUITAR, track: %u\n", guitar->num);
 	} else {
 		fprintf(stderr, "Failed to find PART GUITAR\n");
 		goto end;
 	}
 
 	if ( beat != NULL ) {
-		printf("Found BEAT, track: %u\n", beat->num);
+		//printf("Found BEAT, track: %u\n", beat->num);
 	} else {
 		fprintf(stderr, "Failed to find PART GUITAR\n");
 		goto end;
