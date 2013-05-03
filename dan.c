@@ -163,16 +163,7 @@ static inline void find_tracks(midi_t * midi, midi_track_t ** guitar, midi_track
 			//0x03 = track name :D
 			if ( evnt->type != MIDI_TYPE_META || evnt->cmd != 0x03 ) 
 				continue;
-
-			//for ( int i = 0; i < evnt->size; ++i )
-			//	printf("%c%u", (char)evnt->data[i],evnt->data[i]);
-
-		/*	printf("strncmp: %d, size:%d, len:%d\n", 
-				strncmp((const char *)evnt->data, PART_GUITAR, evnt->size),
-				evnt->size,
-				(int)strlen(PART_GUITAR)
-			);
-		*/	
+	
 			if ( evnt->size == strlen(PART_GUITAR) 
 			   &&  !strncmp((const char *)evnt->data, PART_GUITAR, evnt->size) ) {
 				*guitar = track;
