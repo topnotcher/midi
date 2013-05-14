@@ -11,7 +11,7 @@
 #define PART_GUITAR (const char *)"PART GUITAR"
 #define PART_BEAT (const char *)"BEAT"
 
-#define MAX_FILE_LEN 50 
+#define MAX_FILE_LEN 100 
 
 #define GUITAR_SUFFIX ".guitar"
 #define BEAT_SUFFIX ".beat"
