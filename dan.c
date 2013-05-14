@@ -10,15 +10,30 @@
 
 #define PART_GUITAR (const char *)"PART GUITAR"
 #define PART_BEAT (const char *)"BEAT"
+#define PART_VOCALS (const char*)"PART VOCALS"
+#define PART_BASS (const char*)"PART BASS"
+#define PART_DRUMS (const char*)"PART DRUMS"
 
-#define MAX_FILE_LEN 50 
-
+//max length of any of these suffixes.
+#define MAX_SUFFIX_LEN 10 
 #define GUITAR_SUFFIX ".guitar"
 #define BEAT_SUFFIX ".beat"
+#define VOCALS_SUFFIX ".vocals"
+#define BASS_SUFFIX  ".bass"
+#define DRUMS_SUFFIX ".drums"
 
 static inline int do_midi_thing(char * midi_file);
 static inline int output_track(midi_track_t * const, char * file);
-static inline void find_tracks(midi_t * midi, midi_track_t ** guitar, midi_track_t ** beat);
+static inline char * part_filename(char * str, char * file, char * suffix);
+
+static inline void find_tracks(midi_t * midi, 
+	midi_track_t ** guitar, 
+	midi_track_t ** beat, 
+	midi_track_t ** vocals,
+	midi_track_t ** drums,
+	midi_track_t ** bass
+
+);
 
 int main(int argc, char**argv) {
 
@@ -34,14 +49,9 @@ int main(int argc, char**argv) {
 	return do_midi_thing(midi_file);
 
 }
+
 static inline int do_midi_thing(char * midi_file) {
 
-	if ( strlen(midi_file) > (MAX_FILE_LEN - MAX(strlen(GUITAR_SUFFIX), strlen(BEAT_SUFFIX))) ) {
-		fprintf(stderr, "filename '%s' is too damn long. Adjust MAX_FILE_LEN.\n", midi_file);
-		return 1;
-	}
-
-	
 	midi_t * midi = midi_open(midi_file);	
 
 	int retn = 0;
@@ -59,9 +69,16 @@ static inline int do_midi_thing(char * midi_file) {
 
 	midi_track_t * guitar = NULL;
 	midi_track_t * beat = NULL;
+	midi_track_t * vocals = NULL;
+	midi_track_t * bass = NULL;
+	midi_track_t * drums = NULL;
+
+	
 
 
-	find_tracks(midi,&guitar,&beat);
+
+
+	find_tracks(midi,&guitar,&beat,&vocals,&drums,&bass);
 		
 	if ( guitar == NULL ) {
 		fprintf(stderr, "Failed to find PART GUITAR\n");
@@ -72,34 +89,35 @@ static inline int do_midi_thing(char * midi_file) {
 		retn = 1;
 		goto end;
 	}
-	
-	//already checked that everything fits at beginning of function
-	char guitar_file[MAX_FILE_LEN+1];
-	char beat_file[MAX_FILE_LEN+1];
-	strncpy(guitar_file, midi_file, strlen(midi_file)+1);
-	strncpy(beat_file, midi_file, strlen(midi_file)+1);
 
-	strncat(guitar_file, GUITAR_SUFFIX, strlen(GUITAR_SUFFIX)+1);
-	strncat(beat_file, BEAT_SUFFIX, strlen(BEAT_SUFFIX)+1);
+	char * partfile = malloc(strlen(midi_file)+MAX_SUFFIX_LEN+1);
 
-	
-	if ( output_track(guitar, guitar_file) ) {
+	if ( output_track(guitar, part_filename(partfile,midi_file,GUITAR_SUFFIX)) ) {
 		fprintf(stderr, "Failed to output guitar track\n");
 		retn = 1;
 
-	} else if ( output_track(beat, beat_file) )  {
+	} else if ( output_track(beat, part_filename(partfile,midi_file,BEAT_SUFFIX)) )  {
 		fprintf(stderr, "Failed to output beat track\n");
 		retn = 1;
 	}
 
-
-	end:
+	free(partfile);
+	
+	end:	
 	if ( guitar != NULL ) midi_free_track(guitar);
 	if ( beat != NULL ) midi_free_track(beat);
+	if ( bass != NULL ) midi_free_track(bass);
+	if ( vocals != NULL ) midi_free_track(vocals);
+	if ( drums != NULL ) midi_free_track(drums);
 	midi_close(midi);
 	return retn;	
 }
 
+static inline char * part_filename(char * str, char * file, char * suffix) {
+	strncpy(str, file, strlen(file)+1);
+	strncat(str, suffix, strlen(suffix)+1);
+	return str;
+}
 
 static inline int output_track(midi_track_t * const trk, char* fname) {
 
@@ -140,7 +158,14 @@ static inline int output_track(midi_track_t * const trk, char* fname) {
 //this is a pretty inefficient way of doing this, but I don't really feel like making
 //the midi code "public" and using it mroe... besides this is easier anyway!
 
-static inline void find_tracks(midi_t * midi, midi_track_t ** guitar, midi_track_t ** beat) {
+static inline void find_tracks(midi_t * midi, 
+	midi_track_t ** guitar, 
+	midi_track_t ** beat, 
+	midi_track_t ** vocals,
+	midi_track_t ** drums,
+	midi_track_t ** bass
+
+) {
 	midi_track_t * track;
 
 	*beat = *guitar = NULL;
