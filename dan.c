@@ -73,11 +73,6 @@ static inline int do_midi_thing(char * midi_file) {
 	midi_track_t * bass = NULL;
 	midi_track_t * drums = NULL;
 
-	
-
-
-
-
 	find_tracks(midi,&guitar,&beat,&vocals,&drums,&bass);
 		
 	if ( guitar == NULL ) {
@@ -86,6 +81,18 @@ static inline int do_midi_thing(char * midi_file) {
 		goto end;
 	} else if ( beat == NULL ) {
 		fprintf(stderr, "Failed to find BEAT\n");
+		retn = 1;
+		goto end;
+	} else if ( vocals == NULL ) {
+		fprintf(stderr, "Failed to find VOCALST\n");
+		retn = 1;
+		goto end;
+	} else if ( bass == NULL ) {
+		fprintf(stderr, "Failed to find BASS\n");
+		retn = 1;
+		goto end;
+	} else if ( drums == NULL ) {
+		fprintf(stderr, "Failed to find DRUMS\n");
 		retn = 1;
 		goto end;
 	}
@@ -98,6 +105,19 @@ static inline int do_midi_thing(char * midi_file) {
 
 	} else if ( output_track(beat, part_filename(partfile,midi_file,BEAT_SUFFIX)) )  {
 		fprintf(stderr, "Failed to output beat track\n");
+		retn = 1;
+
+
+	} else if ( output_track(drums, part_filename(partfile,midi_file,DRUMS_SUFFIX)) )  {
+		fprintf(stderr, "Failed to output drums track\n");
+		retn = 1;
+
+	} else if ( output_track(beat, part_filename(partfile,midi_file,VOCALS_SUFFIX)) )  {
+		fprintf(stderr, "Failed to output vocals track\n");
+		retn = 1;
+
+	} else if ( output_track(beat, part_filename(partfile,midi_file,BASS_SUFFIX)) )  {
+		fprintf(stderr, "Failed to output bass track\n");
 		retn = 1;
 	}
 
@@ -196,6 +216,19 @@ static inline void find_tracks(midi_t * midi,
 			} else if ( evnt->size == strlen(PART_BEAT)
 			    && !strncmp((const char *)evnt->data, PART_BEAT, evnt->size) ) {
 				*beat = track;
+
+			} else if ( evnt->size == strlen(PART_VOCALS)
+			    && !strncmp((const char *)evnt->data, PART_VOCALS, evnt->size) ) {
+				*vocals = track;
+
+			} else if ( evnt->size == strlen(PART_DRUMS)
+			    && !strncmp((const char *)evnt->data, PART_DRUMS, evnt->size) ) {
+				*drums = track;
+
+			} else if ( evnt->size == strlen(PART_BASS)
+			    && !strncmp((const char *)evnt->data, PART_BASS, evnt->size) ) {
+				*bass = track;
+
 			}  else {
 				midi_free_track(track);
 			}
