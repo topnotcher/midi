@@ -1,4 +1,4 @@
-*.mid
+*.mid*
 *.xml
 *.midi
 midi
