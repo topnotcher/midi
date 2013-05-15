@@ -7,6 +7,9 @@
 #define MIN(a,b) ((a>b)?b:a)
 #define MAX(a,b) ((a<b)?b:a)
 
+/**
+ * This maps track names to outputted filenames.
+ */
 static struct {
 	const char * part;
 	const char * suffix;
@@ -72,7 +75,6 @@ static inline int do_midi_thing(char * midi_file) {
 
 
 	char * partfile = malloc(strlen(midi_file)+max_suffix_len+1);
-
 
 
 	for ( int i = 0; track_map[i].part != NULL; ++i ) {
