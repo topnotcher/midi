@@ -7,33 +7,35 @@
 #define MIN(a,b) ((a>b)?b:a)
 #define MAX(a,b) ((a<b)?b:a)
 
+static struct {
+	const char * part;
+	const char * suffix;
+} track_map[] = {
+	{ .part = "PART GUITAR",
+	  .suffix = ".guitar",
+	},
+	{ .part = "BEAT",
+	  .suffix = ".beat",
+	},
+	{ .part = "PART VOCALS",
+	  .suffix = ".vocals",
+	},
+	{ .part = "PART BASS",
+	  .suffix = ".bass",
+	},
+	{ .part = "PART DRUMS",
+	  .suffix = ".drums",
+	},
 
-#define PART_GUITAR (const char *)"PART GUITAR"
-#define PART_BEAT (const char *)"BEAT"
-#define PART_VOCALS (const char*)"PART VOCALS"
-#define PART_BASS (const char*)"PART BASS"
-#define PART_DRUMS (const char*)"PART DRUMS"
+	//leave this last. Using it to stop iteration.
+	{ .part = NULL }
+};
 
-//max length of any of these suffixes.
-#define MAX_SUFFIX_LEN 10 
-#define GUITAR_SUFFIX ".guitar"
-#define BEAT_SUFFIX ".beat"
-#define VOCALS_SUFFIX ".vocals"
-#define BASS_SUFFIX  ".bass"
-#define DRUMS_SUFFIX ".drums"
 
 static inline int do_midi_thing(char * midi_file);
 static inline int output_track(midi_track_t * const, char * file);
-static inline char * part_filename(char * str, char * file, char * suffix);
-
-static inline void find_tracks(midi_t * midi, 
-	midi_track_t ** guitar, 
-	midi_track_t ** beat, 
-	midi_track_t ** vocals,
-	midi_track_t ** drums,
-	midi_track_t ** bass
-
-);
+static inline char * part_filename(char const * str, const char const * file, const char const * suffix);
+static inline midi_track_t * find_track(midi_t * midi, const char const * part);
 
 int main(int argc, char**argv) {
 
@@ -61,82 +63,48 @@ static inline int do_midi_thing(char * midi_file) {
 		return 1;
 	}
 
-//	printf("Midi Signature: %c%c%c%c\n", midi->hdr.magic[0], midi->hdr.magic[1], midi->hdr.magic[2], midi->hdr.magic[3]);
-//	printf("Midi header size: %u\n", midi->hdr.hsize);
-//	printf("Midi format: %u\n", midi->hdr.format);
-//	printf("# of tracks: %u\n", midi->hdr.tracks);
-//	printf("Ticks per beat: %u\n", midi->hdr.dd);
-
-	midi_track_t * guitar = NULL;
-	midi_track_t * beat = NULL;
-	midi_track_t * vocals = NULL;
-	midi_track_t * bass = NULL;
-	midi_track_t * drums = NULL;
-
-	find_tracks(midi,&guitar,&beat,&vocals,&drums,&bass);
-		
-	if ( guitar == NULL ) {
-		fprintf(stderr, "Failed to find PART GUITAR\n");
-		retn = 1;
-		goto end;
-	} else if ( beat == NULL ) {
-		fprintf(stderr, "Failed to find BEAT\n");
-		retn = 1;
-		goto end;
-	} else if ( vocals == NULL ) {
-		fprintf(stderr, "Failed to find VOCALST\n");
-		retn = 1;
-		goto end;
-	} else if ( bass == NULL ) {
-		fprintf(stderr, "Failed to find BASS\n");
-		retn = 1;
-		goto end;
-	} else if ( drums == NULL ) {
-		fprintf(stderr, "Failed to find DRUMS\n");
-		retn = 1;
-		goto end;
-	}
-
-	char * partfile = malloc(strlen(midi_file)+MAX_SUFFIX_LEN+1);
-
-	if ( output_track(guitar, part_filename(partfile,midi_file,GUITAR_SUFFIX)) ) {
-		fprintf(stderr, "Failed to output guitar track\n");
-		retn = 1;
-
-	} else if ( output_track(beat, part_filename(partfile,midi_file,BEAT_SUFFIX)) )  {
-		fprintf(stderr, "Failed to output beat track\n");
-		retn = 1;
-
-
-	} else if ( output_track(drums, part_filename(partfile,midi_file,DRUMS_SUFFIX)) )  {
-		fprintf(stderr, "Failed to output drums track\n");
-		retn = 1;
-
-	} else if ( output_track(beat, part_filename(partfile,midi_file,VOCALS_SUFFIX)) )  {
-		fprintf(stderr, "Failed to output vocals track\n");
-		retn = 1;
-
-	} else if ( output_track(beat, part_filename(partfile,midi_file,BASS_SUFFIX)) )  {
-		fprintf(stderr, "Failed to output bass track\n");
-		retn = 1;
-	}
-
-	free(partfile);
+	//find the maximum length of all the filename suffixes.
+	int max_suffix_len = 0;
 	
-	end:	
-	if ( guitar != NULL ) midi_free_track(guitar);
-	if ( beat != NULL ) midi_free_track(beat);
-	if ( bass != NULL ) midi_free_track(bass);
-	if ( vocals != NULL ) midi_free_track(vocals);
-	if ( drums != NULL ) midi_free_track(drums);
+	for ( int i = 0; track_map[i].part != NULL; ++i )
+		if ( strlen(track_map[i].suffix) > max_suffix_len )
+			max_suffix_len = strlen(track_map[i].suffix);	
+
+
+	char * partfile = malloc(strlen(midi_file)+max_suffix_len+1);
+
+
+
+	for ( int i = 0; track_map[i].part != NULL; ++i ) {
+		midi_track_t * trk = find_track(midi, track_map[i].part);
+		
+		if ( trk == NULL ) {
+			fprintf(stderr, "Failed to find %s\n", track_map[i].part);
+			retn = 1;
+			continue;
+		} 
+
+		partfile = part_filename(partfile,midi_file,track_map[i].suffix);
+
+		if ( output_track(trk, partfile) ) {
+			fprintf(stderr, "Failed to output %s to %s\n", track_map[i].part, partfile); 
+			retn = 1;
+		}
+
+		midi_free_track(trk);
+	}
+
+	//end:
 	midi_close(midi);
+
 	return retn;	
+
 }
 
-static inline char * part_filename(char * str, char * file, char * suffix) {
-	strncpy(str, file, strlen(file)+1);
-	strncat(str, suffix, strlen(suffix)+1);
-	return str;
+static inline char * part_filename(char const * str, const char const * file, const char const * suffix) {
+	strncpy((char *)str, (char *)file, strlen(file)+1);
+	strncat((char *)str, (char *)suffix, strlen(suffix)+1);
+	return (char*)str;
 }
 
 static inline int output_track(midi_track_t * const trk, char* fname) {
@@ -178,18 +146,8 @@ static inline int output_track(midi_track_t * const trk, char* fname) {
 //this is a pretty inefficient way of doing this, but I don't really feel like making
 //the midi code "public" and using it mroe... besides this is easier anyway!
 
-static inline void find_tracks(midi_t * midi, 
-	midi_track_t ** guitar, 
-	midi_track_t ** beat, 
-	midi_track_t ** vocals,
-	midi_track_t ** drums,
-	midi_track_t ** bass
-
-) {
+static inline midi_track_t * find_track(midi_t * midi, const char const * part) {
 	midi_track_t * track;
-
-	*beat = *guitar = NULL;
-
 
 	for ( int i = 0; i < midi->hdr.tracks; ++i ) {
 		track =  midi_get_track(midi, i);
@@ -209,36 +167,15 @@ static inline void find_tracks(midi_t * midi,
 			if ( evnt->type != MIDI_TYPE_META || evnt->cmd != 0x03 ) 
 				continue;
 	
-			if ( evnt->size == strlen(PART_GUITAR) 
-			   &&  !strncmp((const char *)evnt->data, PART_GUITAR, evnt->size) ) {
-				*guitar = track;
-
-			} else if ( evnt->size == strlen(PART_BEAT)
-			    && !strncmp((const char *)evnt->data, PART_BEAT, evnt->size) ) {
-				*beat = track;
-
-			} else if ( evnt->size == strlen(PART_VOCALS)
-			    && !strncmp((const char *)evnt->data, PART_VOCALS, evnt->size) ) {
-				*vocals = track;
-
-			} else if ( evnt->size == strlen(PART_DRUMS)
-			    && !strncmp((const char *)evnt->data, PART_DRUMS, evnt->size) ) {
-				*drums = track;
-
-			} else if ( evnt->size == strlen(PART_BASS)
-			    && !strncmp((const char *)evnt->data, PART_BASS, evnt->size) ) {
-				*bass = track;
-
-			}  else {
-				midi_free_track(track);
-			}
-			
-			track = NULL;
-			break;
+			if ( evnt->size == strlen(part) 
+			   &&  !strncmp((const char *)evnt->data, part, evnt->size) ) {
+				return track;
+			}  	
 		}
 		
 		if ( track != NULL )
 			midi_free_track(track);
 	}
-}
 
+	return NULL;
+}
