@@ -34,6 +34,7 @@ static struct {
 	{ .part = NULL }
 };
 
+//FYI: bad shit will happen if this is longer than any of the above suffixes.
 #define TIME_SUFFIX ".time"
 
 static inline int do_midi_thing(char * midi_file);
