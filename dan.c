@@ -34,9 +34,11 @@ static struct {
 	{ .part = NULL }
 };
 
+#define TIME_SUFFIX ".time"
 
 static inline int do_midi_thing(char * midi_file);
 static inline int output_track(midi_track_t * const, char * file);
+static inline int output_time(midi_t * const, char * file);
 static inline char * part_filename(char const * str, const char const * file, const char const * suffix);
 static inline midi_track_t * find_track(midi_t * midi, const char const * part);
 
@@ -96,6 +98,11 @@ static inline int do_midi_thing(char * midi_file) {
 		midi_free_track(trk);
 	}
 
+	if ( output_time(midi,part_filename(partfile,midi_file,TIME_SUFFIX)) ) {
+		fprintf(stderr, "failed to output time\n");
+		retn = 1;
+	}
+
 	//end:
 	midi_close(midi);
 
@@ -144,6 +151,37 @@ static inline int output_track(midi_track_t * const trk, char* fname) {
 
 	return 0;
 }
+
+static inline int output_time(midi_t * const midi, char * fname) {
+
+	midi_track_t * trk =  midi_get_track(midi, 0);
+
+	if ( trk == NULL ) {
+		fprintf(stderr, "Failed to find track 0... WTF?\n");
+		return 1;
+	}
+
+	FILE * file = fopen(fname, "w+");
+	
+	if ( file == NULL )
+		return 1;
+
+
+	midi_iter_track(trk);
+	unsigned long int absolute = 0;
+	while ( midi_track_has_next(trk) ) {
+		midi_event_t * cur = midi_track_next(trk);
+		absolute += cur->td;	
+
+		if ( cur->type == MIDI_TYPE_META && cur->cmd == 0x58 ) 
+			fprintf(file, "%lu,%u,%u\n", absolute,cur->data[0], cur->data[1]);
+	}
+
+	midi_free_track(trk);
+
+	return 0;
+}
+
 
 //this is a pretty inefficient way of doing this, but I don't really feel like making
 //the midi code "public" and using it mroe... besides this is easier anyway!
