@@ -37,6 +37,16 @@ midi_t * midi_open(char * midi_file) {
 	midi->midi_file = file;
 
 	midi_parse_hdr(file, &midi->hdr);
+	
+	char magic[] = {'M','T','h','d'};
+
+	for ( int i = 0; i < 4; ++ i ) {
+		if ( midi->hdr.magic[i] != magic[i] ) {
+			fprintf(stderr, "Invalid midi file: missing MThd in header.");
+			midi_close(midi);
+			return NULL;
+		}
+	}
 
 	//just in case there are additional bytes in the header?
 	//@TODO struct alignment sucks balls.
