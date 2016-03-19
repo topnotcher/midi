@@ -27,17 +27,17 @@ typedef struct {
 
 	uint8_t cmd;
 
-	//always 0 for meta events.
+	// always 0 for meta events.
 	uint8_t chan;
 
+	// size of data
 	uint8_t size; 
-
 	uint8_t data[]; 
 } midi_event_t;
 
 
 typedef struct midi_event_node_s {
-	struct midi_event_node_s * next;
+	struct midi_event_node_s *next;
 	midi_event_t event;
 } midi_event_node_t;
 
@@ -46,13 +46,12 @@ typedef struct {
 	midi_track_hdr_t hdr;
 	uint32_t events;
 	uint8_t num;
-	midi_event_node_t * head;
-	midi_event_node_t * cur;
+	midi_event_node_t *head;
+	midi_event_node_t *cur;
 } midi_track_t;
 
 typedef struct {
-	FILE * midi_file;
-	//byte offset to start of first track. 
+	FILE *midi_file;
 	midi_hdr_t hdr;
 	
 	//offset to first track.
@@ -60,20 +59,24 @@ typedef struct {
 } midi_t;
 
 
-midi_t * midi_open(char * midi_file);
-void midi_close(midi_t * midi);
-midi_track_t * midi_get_track(midi_t * midi, uint8_t n);
-void midi_free_track(midi_track_t * trk);
+midi_t *midi_open(const char *const midi_file);
+void midi_close(midi_t *midi);
+midi_track_t *midi_get_track(midi_t *midi, uint8_t n);
+void midi_free_track(midi_track_t *trk);
 
 /**
  * Track iteration
  */
 
-void midi_iter_track(midi_track_t * trk);
+void midi_iter_track(midi_track_t *trk);
 bool midi_track_has_next(midi_track_t *trk);
 midi_event_t * midi_track_next(midi_track_t *trk);
+
 //print a textual meta argument
-void midi_printmeta(midi_event_t * meta);
+void midi_printmeta(midi_event_t *meta);
+
+// Convert event->cmd to a string
+char *midi_get_eventstr(uint8_t cmd);
 
 
 #define MIDI_EVENT_NOTE_OFF 		0x08

@@ -70,7 +70,7 @@ static inline int do_midi_thing(char * midi_file) {
 	}
 
 	//find the maximum length of all the filename suffixes.
-	int max_suffix_len = 0;
+	unsigned int max_suffix_len = 0;
 	
 	for ( int i = 0; track_map[i].part != NULL; ++i )
 		if ( strlen(track_map[i].suffix) > max_suffix_len )
