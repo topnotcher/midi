@@ -59,13 +59,14 @@ int main(int argc, char**argv) {
 }
 
 static inline int do_midi_thing(char * midi_file) {
-
-	midi_t * midi = midi_open(midi_file);	
-
+	midi_t *midi;
+	int status;
 	int retn = 0;
 
-	if ( midi == NULL ) {
-		fprintf(stderr, "Failed open midi file.\n");
+	status = midi_open(midi_file, &midi);	
+
+	if (status) {
+		fprintf(stderr, "Failed open midi file: %s\n", strerror(status));
 		return 1;
 	}
 

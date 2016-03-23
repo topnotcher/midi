@@ -1,2 +1,2 @@
 all:
-	gcc -O2 --std=c99 -Wall dan.c midi.c -o midi 
+	gcc -O2 --std=c99 -Wall -Wextra dan.c midi.c -o midi 
